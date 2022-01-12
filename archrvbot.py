@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 from typing import List
@@ -19,18 +20,24 @@ class ArchRVBotHandler(Handler):
         self.baseurl = baseurl
         self.token = token
 
+    async def _process_one(self, client, pkg_name, status):
+        try:
+            url = f'{self.baseurl}/delete/{pkg_name}/{status}'
+            async with client.get(url=url, params=dict(
+                token=self.token
+            )) as response:
+                data = await response.text()
+                log.debug(data)
+        except Exception as e:
+            log.error(e)
+
     async def process(self, updates: List[Update]):
         log.debug('send to archrv-pkg...')
+        msgs = []
         for update in updates:
-            status = self.status_map.get(update.update_type)
+            status = self.status_map.get (update.update_type)
             if status is None:
                 continue
-            url = f'{self.baseurl}/delete/{update.pkg_name}/{status}'
-            try:
-                log.debug(f'GET {url}')
-                data = await aiohttp.ClientSession.get(url=url, params=dict(
-                    token=self.token
-                ))
-                log.debug(data)
-            except Exception as e:
-                log.error(e)
+            msgs.append((update.pkg_name, status))
+        async with aiohttp.ClientSession(raise_for_status=True) as client:
+            await asyncio.gather(*[self._process_one(client, *msg) for msg in msgs])

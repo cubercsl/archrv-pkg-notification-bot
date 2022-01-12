@@ -52,8 +52,9 @@ async def handle_update(data: List[Update]):
         log.info(f'{num} update(s)')
     else:
         log.debug(f'No update')
+        return
     for handler in update_handler:
-        await asyncio.create_task(handler.process(data))
+        asyncio.create_task(handler.process(data))
 
 
 async def main():
@@ -75,7 +76,7 @@ async def main():
             after_sync = get_packages(db.pkgcache)
             update += get_update(db.name, before_sync, after_sync)
 
-        await asyncio.create_task(handle_update(update))
+        asyncio.create_task(handle_update(update))
         await asyncio.sleep(60)
 
 
