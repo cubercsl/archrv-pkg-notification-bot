@@ -38,11 +38,11 @@ def get_update(db_name, before, after):
             old_version, old_arch = before[name]
             if pyalpm.vercmp(new_version, old_version) > 0:
                 msg = f'Update: {db_name} {name} {old_version} -> {new_version} {new_arch}'
-                result.append(Update(name, 'update', msg))
+                result.append(Update(name, 'update', db_name, old_version, new_version, new_arch, msg))
                 log.info(msg)
         else:
             msg = f'New: {db_name} {name} {new_version} {new_arch}'
-            result.append(Update(name, 'new', msg))
+            result.append(Update(name, 'new', db_name, None, new_version, new_arch, msg))
             log.info(msg)
     return result
 
