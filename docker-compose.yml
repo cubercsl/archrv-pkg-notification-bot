@@ -1,0 +1,13 @@
+version: '3'
+
+services:
+  archrv-notification-bot:
+    container_name: archrv-notification-bot
+    build:
+      context: .
+    volumes:
+      - ./db:/app/db
+    env_file: .envfile
+    environment:
+      - LOGLEVEL
+    restart: unless-stopped
