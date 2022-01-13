@@ -91,7 +91,8 @@ def main():
     )
 
     args = parser.parse_args()
-    logging.basicConfig(format='%(asctime)s - %(message)s', level=args.loglevel)
+    logging.basicConfig(format='%(asctime)s - [%(levelname)s] - %(message)s',
+                        level=args.loglevel)
 
     baseurl = args.baseurl
     handle = Handle('.', 'db')
