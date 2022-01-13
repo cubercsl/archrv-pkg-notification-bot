@@ -1,5 +1,6 @@
 import asyncio
 import html
+import itertools
 import logging
 
 from typing import List
@@ -13,11 +14,11 @@ log = logging.getLogger(__name__)
 
 class TelegramBotHandler(Handler):
 
-    def __init__(self, token, chat_id):
-        self.url = f'https://api.telegram.org/bot{token}/sendMessage'
+    def __init__(self, bot_token: str, chat_id: str):
+        self.url = f'https://api.telegram.org/bot{bot_token}/sendMessage'
         self.chat_id = chat_id
 
-    async def _process_one(self, client, group):
+    async def _process_one(self, client: aiohttp.ClientSession, group: List[Update], chat_id: str):
         lines = ['<b>Arch Linux RISC-V: Resent package updates</b>']
         for item in group:
             if item.old_version:
@@ -29,7 +30,7 @@ class TelegramBotHandler(Handler):
 
         try:
             async with client.get(self.url, params=dict(
-                chat_id=self.chat_id,
+                chat_id=chat_id,
                 text=msg,
                 parse_mode='HTML'
             )) as response:
@@ -39,8 +40,10 @@ class TelegramBotHandler(Handler):
             log.error(e)
 
     async def process(self, updates: List[Update]):
-        log.debug('send to telegram...')
+        log.info('send to telegram...')
         total = len(updates)
         groups = [updates[idx:idx + 10] for idx in range(0, total, 10)]
+        chat_id = self.chat_id.split(',')
         async with aiohttp.ClientSession(raise_for_status=True) as client:
-            await asyncio.gather(*[self._process_one(client, group) for group in groups])
+            await asyncio.gather(*[self._process_one(client, group, _chat_id) for group, _chat_id in
+                                   itertools.product(groups, chat_id)])

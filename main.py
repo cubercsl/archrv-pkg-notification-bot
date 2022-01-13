@@ -1,32 +1,29 @@
+import argparse
 import asyncio
 import logging
-import os
 
 from typing import List
 
 import pyalpm
 from pyalpm import Handle, DB
 
+from config import handlers
 from handler import Update
 
-from archrvbot import ArchRVBotHandler
-from telegram import TelegramBotHandler
 
-LOGLEVEL = os.environ.get('LOGLEVEL', 'INFO').upper()
-logging.basicConfig(format='%(asctime)s - %(message)s', level=LOGLEVEL)
 log = logging.getLogger(__name__)
 
 update_handler = []
 
 
-def add_handler(className, *args):
-    if all(args):
-        update_handler.append(className(*args))
+def add_handler(handler, *args, **kwargs):
+    if all(args) and all(kwargs.values()):
+        update_handler.append(handler(*args, **kwargs))
     else:
-        log.warning(f'ignore handler: {className}')
+        log.warning(f'ignore handler: {handler}')
 
 
-def get_packages(packages: List[pyalpm.Package]):
+def get_packages(packages: list[pyalpm.Package]):
     return dict((pkg.name, (pkg.version, pkg.arch)) for pkg in packages)
 
 
@@ -57,20 +54,14 @@ async def handle_update(data: List[Update]):
         asyncio.create_task(handler.process(data))
 
 
-async def main():
-    baseurl = 'https://archriscv.felixc.at/repo'
-    handle = Handle('.', 'db')
-    core: DB = handle.register_syncdb('core', pyalpm.SIG_DATABASE_OPTIONAL)
-    extra: DB = handle.register_syncdb('extra', pyalpm.SIG_DATABASE_OPTIONAL)
-    community: DB = handle.register_syncdb('community', pyalpm.SIG_DATABASE_OPTIONAL)
-
-    for db in (core, extra, community):
+async def run(baseurl, *args):
+    for db in args:
         db.servers = [f"{baseurl}/{db.name}"]
 
     while True:
         update = []
-        for db in (core, extra, community):
-            log.debug(f'Syncing {db.name}...')
+        for db in args:
+            log.info(f'Syncing {db.name}...')
             before_sync = get_packages(db.pkgcache)
             db.update(False)
             after_sync = get_packages(db.pkgcache)
@@ -80,12 +71,39 @@ async def main():
         await asyncio.sleep(60)
 
 
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '-d', '--debug',
+        help="Print lots of debugging statements",
+        action="store_const", dest="loglevel", const=logging.DEBUG,
+        default=logging.WARNING,
+    )
+    parser.add_argument(
+        '-v', '--verbose',
+        help="Be verbose",
+        action="store_const", dest="loglevel", const=logging.INFO,
+    )
+    parser.add_argument(
+        '--baseurl',
+        help="Set Repo baseURL",
+        default="https://archriscv.felixc.at/repo"
+    )
+
+    args = parser.parse_args()
+    logging.basicConfig(format='%(asctime)s - %(message)s', level=args.loglevel)
+
+    baseurl = args.baseurl
+    handle = Handle('.', 'db')
+    core: DB = handle.register_syncdb('core', pyalpm.SIG_DATABASE_OPTIONAL)
+    extra: DB = handle.register_syncdb('extra', pyalpm.SIG_DATABASE_OPTIONAL)
+    community: DB = handle.register_syncdb('community', pyalpm.SIG_DATABASE_OPTIONAL)
+
+    for handler, kwargs in handlers.items():
+        add_handler(handler, **kwargs)
+
+    asyncio.run(run(baseurl, core, extra, community))
+
+
 if __name__ == '__main__':
-
-    plctbot_url, plctbot_token = os.getenv('plctbot_url'), os.getenv('plctbot_token')
-    add_handler(ArchRVBotHandler, plctbot_url, plctbot_token)
-
-    bot_token, chat_id = os.getenv('bot_token'), os.getenv('chat_id')
-    add_handler(TelegramBotHandler, bot_token, chat_id)
-
-    asyncio.run(main())
+    main()

@@ -1,7 +1,7 @@
 from typing import List
 
 
-class Update (object):
+class Update(object):
     def __init__(self, pkg_name, update_type=None, repo=None,
                  old_version=None, new_version=None, arch=None, msg=None):
         self.pkg_name = pkg_name
@@ -13,6 +13,6 @@ class Update (object):
         self.msg = msg
 
 
-class Handler (object):
+class Handler(object):
     async def process(self, data: List[Update]):
         pass

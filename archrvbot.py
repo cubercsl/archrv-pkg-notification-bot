@@ -32,10 +32,10 @@ class ArchRVBotHandler(Handler):
             log.error(e)
 
     async def process(self, updates: List[Update]):
-        log.debug('send to archrv-pkg...')
+        log.info('send to archrv...')
         msgs = []
         for update in updates:
-            status = self.status_map.get (update.update_type)
+            status = self.status_map.get(update.update_type)
             if status is None:
                 continue
             msgs.append((update.pkg_name, status))
