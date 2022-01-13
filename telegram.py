@@ -19,7 +19,7 @@ class TelegramBotHandler(Handler):
         self.chat_id = chat_id
 
     async def _process_one(self, client: aiohttp.ClientSession, group: List[Update], chat_id: str):
-        lines = ['<b>Arch Linux RISC-V: Resent package updates</b>']
+        lines = ['<b>Arch Linux RISC-V: Recent package updates</b>']
         for item in group:
             if item.old_version:
                 lines.append(html.escape(f'{item.pkg_name} {item.old_version} -> {item.new_version}'))
