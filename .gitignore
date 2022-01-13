@@ -153,3 +153,5 @@ cython_debug/
 
 db/local
 db/sync
+
+.envfile

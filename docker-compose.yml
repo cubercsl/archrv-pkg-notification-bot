@@ -8,6 +8,4 @@ services:
     volumes:
       - ./db:/app/db
     env_file: .envfile
-    environment:
-      - LOGLEVEL
     restart: unless-stopped
