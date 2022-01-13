@@ -28,6 +28,8 @@ class ArchRVBotHandler(Handler):
             )) as response:
                 data = await response.text()
                 log.debug(data)
+        except aiohttp.ClientResponseError as e:
+            log.error('{}, message={!r}'.format(e.status, e.message))
         except Exception as e:
             log.error(e)
 

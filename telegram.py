@@ -28,16 +28,18 @@ class TelegramBotHandler(Handler):
 
         msg = '\n'.join(lines)
 
-        try:
-            async with client.get(self.url, params=dict(
-                chat_id=chat_id,
-                text=msg,
-                parse_mode='HTML'
-            )) as response:
+        async with client.get(self.url, params=dict(
+            chat_id=chat_id,
+            text=msg,
+            parse_mode='HTML'
+        )) as response:
+            try:
                 data = await response.text()
                 log.debug(data)
-        except Exception as e:
-            log.error(e)
+            except aiohttp.ClientResponseError as e:
+                log.error('{}, message={!r}'.format(e.status, e.message))
+            except Exception as e:
+                log.error(e)
 
     async def process(self, updates: List[Update]):
         log.info('send to telegram...')
