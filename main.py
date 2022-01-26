@@ -11,7 +11,7 @@ from handler import Update
 
 import betterlogging as logging
 
-log = logging.get_colorized_logger(__name__)
+log = logging.getLogger(__name__)
 update_handler = []
 
 
@@ -90,7 +90,7 @@ def main():
     )
 
     args = parser.parse_args()
-    log.setLevel(args.loglevel)
+    logging.basic_colorized_config(level=args.loglevel)
     baseurl = args.baseurl
     handle = Handle('.', 'db')
     core: DB = handle.register_syncdb('core', pyalpm.SIG_DATABASE_OPTIONAL)

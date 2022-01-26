@@ -7,7 +7,7 @@ import betterlogging as logging
 
 from handler import Handler, Update
 
-log = logging.get_colorized_logger(__name__)
+log = logging.getLogger(__name__)
 
 
 class ArchRVBotHandler(Handler):
