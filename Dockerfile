@@ -1,6 +1,6 @@
 FROM archlinux
 RUN pacman --noconfirm -Syyu && \
-    pacman --noconfirm -S python aiohttp pyalpm python-pip && \
+    pacman --noconfirm -S python python-aiohttp pyalpm python-pip && \
     pacman --noconfirm -Sc
 COPY * /app/
 WORKDIR /app
