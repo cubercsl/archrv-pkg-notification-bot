@@ -1,13 +1,13 @@
 import asyncio
-import logging
 
 from typing import List
 
 import aiohttp
+import betterlogging as logging
 
 from handler import Handler, Update
 
-log = logging.getLogger(__name__)
+log = logging.get_colorized_logger(__name__)
 
 
 class ArchRVBotHandler(Handler):
@@ -20,14 +20,14 @@ class ArchRVBotHandler(Handler):
         self.baseurl = baseurl
         self.token = token
 
-    async def _process_one(self, client, pkg_name, status):
+    async def _process_one(self, client: aiohttp.ClientSession, pkg_name: str, status: str):
         try:
             url = f'{self.baseurl}/delete/{pkg_name}/{status}'
             async with client.get(url=url, params=dict(
                 token=self.token
             )) as response:
                 data = await response.text()
-                log.debug(data)
+                log.info(data)
         except aiohttp.ClientResponseError as e:
             log.error('{}, message={!r}'.format(e.status, e.message))
         except Exception as e:

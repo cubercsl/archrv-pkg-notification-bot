@@ -1,15 +1,15 @@
 import asyncio
 import html
 import itertools
-import logging
 
 from typing import List
 
 import aiohttp
+import betterlogging as logging
 
 from handler import Handler, Update
 
-log = logging.getLogger(__name__)
+log = logging.get_colorized_logger(__name__)
 
 
 class TelegramBotHandler(Handler):
@@ -34,8 +34,8 @@ class TelegramBotHandler(Handler):
             parse_mode='HTML'
         )) as response:
             try:
-                data = await response.text()
-                log.debug(data)
+                data = await response.json()
+                log.info(data)
             except aiohttp.ClientResponseError as e:
                 log.error('{}, message={!r}'.format(e.status, e.message))
             except Exception as e:

@@ -155,3 +155,4 @@ db/local
 db/sync
 
 .envfile
+.git/

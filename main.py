@@ -1,6 +1,5 @@
 import argparse
 import asyncio
-import logging
 
 from typing import List
 
@@ -10,9 +9,9 @@ from pyalpm import Handle, DB
 from config import handlers
 from handler import Update
 
+import betterlogging as logging
 
-log = logging.getLogger(__name__)
-
+log = logging.get_colorized_logger(__name__)
 update_handler = []
 
 
@@ -91,9 +90,7 @@ def main():
     )
 
     args = parser.parse_args()
-    logging.basicConfig(format='%(asctime)s - [%(levelname)s] - %(message)s',
-                        level=args.loglevel)
-
+    log.setLevel(args.loglevel)
     baseurl = args.baseurl
     handle = Handle('.', 'db')
     core: DB = handle.register_syncdb('core', pyalpm.SIG_DATABASE_OPTIONAL)
