@@ -31,7 +31,7 @@ class ArchRVBotHandler(Handler):
         except aiohttp.ClientResponseError as e:
             log.error('{}, message={!r}'.format(e.status, e.message))
         except Exception as e:
-            log.error(e)
+            log.exception(e)
 
     async def process(self, updates: List[Update]):
         log.info('send to archrv...')

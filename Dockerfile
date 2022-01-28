@@ -1,9 +1,8 @@
 FROM archlinux
 RUN pacman --noconfirm -Syyu && \
     pacman --noconfirm -S python python-aiohttp pyalpm python-pip && \
-    pacman --noconfirm -Sc
+    pacman --noconfirm -Sc && \
+    python -m pip install betterlogging~=0.0.9
 COPY * /app/
 WORKDIR /app
-RUN python -m pip install betterlogging~=0.0.9
-
 CMD ["python", "main.py", "--verbose"]

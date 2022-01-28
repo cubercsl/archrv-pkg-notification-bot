@@ -1,7 +1,7 @@
 import os
 
-from archrvbot import ArchRVBotHandler
-from telegram import TelegramBotHandler
+from handler.archrvbot import ArchRVBotHandler
+from handler.telegram import TelegramBotHandler
 
 handlers = {
     ArchRVBotHandler: dict(
