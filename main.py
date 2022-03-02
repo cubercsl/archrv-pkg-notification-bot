@@ -81,7 +81,7 @@ async def get_ftbfs(data: str):
         if m := pat.match(line):
             log_time, pkg_name, log_file = m.groups()
             if log_time > last_log:
-                update_time = log_time
+                update_time = max(update_time, log_time)
                 msg = f'FTBFS: {pkg_name} {log_file}'
                 result.append(Update(pkg_name, 'failed', None, None, None, None, msg))
                 log.info(msg)
