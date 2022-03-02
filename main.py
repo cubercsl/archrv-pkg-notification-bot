@@ -1,5 +1,7 @@
+import aiohttp
 import argparse
 import asyncio
+import re
 
 from typing import List
 
@@ -52,8 +54,43 @@ async def handle_update(data: List[Update]):
     for handler in update_handler:
         asyncio.create_task(handler.process(data))
 
+async def get_ftbfs_log(logurl: str):
+    async with aiohttp.ClientSession(raise_for_status=True) as client:
+        try:
+            async with client.get(logurl) as response:
+                return await response.text()
+        except aiohttp.ClientResponseError as e:
+            log.error('{}, message={!r}'.format(e.status, e.message))
+        except Exception as e:
+            log.exception(e)
 
-async def run(baseurl, *args):
+async def get_ftbfs(data: str):
+    pat = re.compile(r'(?P<log_time>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{10}) \./\.status/logs/(?P<pkg_name>.*)/(?P<log_file>.*)')
+    try:
+        with open('db/ftbfs.log', 'r') as f:
+            last_log = f.read().strip()
+    except FileNotFoundError:
+        last_log = ''
+
+    update_time = last_log
+    result = []
+    if not data:
+        log.warning('No FTBFS log found')
+        return result
+    for line in data.split('\n'):
+        if m := pat.match(line):
+            log_time, pkg_name, log_file = m.groups()
+            if log_time > last_log:
+                update_time = log_time
+                msg = f'FTBFS: {pkg_name} {log_file}'
+                result.append(Update(pkg_name, 'failed', None, None, None, None, msg))
+                log.info(msg)
+    with open('db/ftbfs.log', 'w') as f:
+        f.write(update_time)
+
+    return result
+
+async def run(baseurl, logurl, *args):
     for db in args:
         db.servers = [f"{baseurl}/{db.name}"]
 
@@ -65,6 +102,8 @@ async def run(baseurl, *args):
             db.update(False)
             after_sync = get_packages(db.pkgcache)
             update += get_update(db.name, before_sync, after_sync)
+
+        update += await get_ftbfs(await get_ftbfs_log(logurl))
 
         asyncio.create_task(handle_update(update))
         await asyncio.sleep(60)
@@ -88,10 +127,16 @@ def main():
         help="Set Repo baseURL",
         default="https://archriscv.felixc.at/repo"
     )
+    parser.add_argument(
+        '--logurl',
+        help="Set the FTBFS Log URL.",
+        default="https://archriscv.felixc.at/.status/latestlogs.txt"
+    )
 
     args = parser.parse_args()
     logging.basic_colorized_config(level=args.loglevel)
     baseurl = args.baseurl
+    logurl = args.logurl
     handle = Handle('.', 'db')
     core: DB = handle.register_syncdb('core', pyalpm.SIG_DATABASE_OPTIONAL)
     extra: DB = handle.register_syncdb('extra', pyalpm.SIG_DATABASE_OPTIONAL)
@@ -100,7 +145,7 @@ def main():
     for handler, kwargs in handlers.items():
         add_handler(handler, **kwargs)
 
-    asyncio.run(run(baseurl, core, extra, community))
+    asyncio.run(run(baseurl, logurl, core, extra, community))
 
 
 if __name__ == '__main__':

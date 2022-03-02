@@ -43,6 +43,8 @@ class TelegramBotHandler(Handler):
 
     async def process(self, updates: List[Update]):
         log.info('send to telegram...')
+        # Do not post FTBFS updates to telegram
+        updates = list(filter(lambda item: item.update_type in ('update', 'new') ,updates))
         total = len(updates)
         groups = [updates[idx:idx + 10] for idx in range(0, total, 10)]
         chat_id = self.chat_id.split(',')
