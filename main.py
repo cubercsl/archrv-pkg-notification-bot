@@ -1,4 +1,3 @@
-from importlib.resources import Package
 import aiohttp
 import argparse
 import asyncio
