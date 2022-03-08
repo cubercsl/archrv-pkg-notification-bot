@@ -1,7 +1,9 @@
+from importlib.resources import Package
 import aiohttp
 import argparse
 import asyncio
 import re
+import time
 
 from typing import List
 
@@ -64,7 +66,7 @@ async def get_ftbfs_log(logurl: str):
         except Exception as e:
             log.exception(e)
 
-async def get_ftbfs(data: str):
+async def get_ftbfs(data: str, *args):
     pat = re.compile(r'(?P<log_time>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{10}) \./\.status/logs/(?P<pkg_name>.*)/(?P<log_file>.*)')
     try:
         with open('db/ftbfs.log', 'r') as f:
@@ -82,9 +84,21 @@ async def get_ftbfs(data: str):
             log_time, pkg_name, log_file = m.groups()
             if log_time > last_log:
                 update_time = max(update_time, log_time)
-                msg = f'FTBFS: {pkg_name} {log_file}'
-                result.append(Update(pkg_name, 'failed', None, None, None, None, msg))
-                log.info(msg)
+                ts = int(time.mktime(time.strptime(log_time[:26], "%Y-%m-%d %H:%M:%S.%f")))
+                should_update = True
+                for db in args:
+                    if pkg := db.get_pkg(pkg_name):
+                        builddate = pkg.builddate
+                        log.debug(f'{pkg_name} fail at: {ts}')
+                        log.debug(f"{pkg_name} build at: {builddate}")
+                        if ts < builddate:
+                            log.warn(f'Ignore {pkg_name} fail at {log_time}')
+                            should_update = False
+                            break
+                if should_update:
+                    msg = f'FTBFS: {pkg_name} {log_file}'
+                    result.append(Update(pkg_name, 'failed', None, None, None, None, msg))
+                    log.info(msg)
     with open('db/ftbfs.log', 'w') as f:
         f.write(update_time)
 
@@ -103,7 +117,7 @@ async def run(baseurl, logurl, *args):
             after_sync = get_packages(db.pkgcache)
             update += get_update(db.name, before_sync, after_sync)
 
-        update += await get_ftbfs(await get_ftbfs_log(logurl))
+        update += await get_ftbfs(await get_ftbfs_log(logurl), *args)
 
         asyncio.create_task(handle_update(update))
         await asyncio.sleep(60)
