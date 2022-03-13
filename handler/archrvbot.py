@@ -21,9 +21,9 @@ class ArchRVBotHandler(Handler):
         self.baseurl = baseurl
         self.token = token
 
-    async def _process_one(self, client: aiohttp.ClientSession, pkg_name: str, action: str, status: str):
+    async def _process_one(self, client: aiohttp.ClientSession, pkgbase: str, action: str, status: str):
         try:
-            url = f'{self.baseurl}/{action}/{pkg_name}/{status}'
+            url = f'{self.baseurl}/{action}/{pkgbase}/{status}'
             async with client.get(url=url, params=dict(
                 token=self.token
             )) as response:
@@ -42,6 +42,6 @@ class ArchRVBotHandler(Handler):
             if action_status is None:
                 continue
             action, status = action_status
-            msgs.append((update.pkg_name, action, status))
+            msgs.append((update.pkgbase, action, status))
         async with aiohttp.ClientSession(raise_for_status=True) as client:
             await asyncio.gather(*[self._process_one(client, *msg) for msg in msgs])

@@ -26,22 +26,22 @@ def add_handler(handler, *args, **kwargs):
 
 
 def get_packages(packages: list[pyalpm.Package]):
-    return dict((pkg.name, (pkg.version, pkg.arch)) for pkg in packages)
+    return dict((pkg.name, (pkg.version, pkg.arch, pkg.base)) for pkg in packages)
 
 
 def get_update(db_name, before, after):
     result = []
     for name, value in after.items():
-        new_version, new_arch = value
+        new_version, new_arch, pkgbase = value
         if name in before:
-            old_version, old_arch = before[name]
+            old_version, old_arch, _ = before[name]
             if pyalpm.vercmp(new_version, old_version) > 0:
                 msg = f'Update: {db_name} {name} {old_version} -> {new_version} {new_arch}'
-                result.append(Update(name, 'update', db_name, old_version, new_version, new_arch, msg))
+                result.append(Update(name, pkgbase, 'update', db_name, old_version, new_version, new_arch, msg))
                 log.info(msg)
         else:
             msg = f'New: {db_name} {name} {new_version} {new_arch}'
-            result.append(Update(name, 'new', db_name, None, new_version, new_arch, msg))
+            result.append(Update(name, pkgbase, 'new', db_name, None, new_version, new_arch, msg))
             log.info(msg)
     return result
 
@@ -66,7 +66,7 @@ async def get_ftbfs_log(logurl: str):
             log.exception(e)
 
 async def get_ftbfs(data: str, *args):
-    pat = re.compile(r'(?P<log_time>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{10}) \./\.status/logs/(?P<pkg_name>.*)/(?P<log_file>.*)')
+    pat = re.compile(r'(?P<log_time>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{10}) \./\.status/logs/(?P<pkgbase>.*)/(?P<log_file>.*)')
     try:
         with open('db/ftbfs.log', 'r') as f:
             last_log = f.read().strip()
@@ -80,23 +80,23 @@ async def get_ftbfs(data: str, *args):
         return result
     for line in data.split('\n'):
         if m := pat.match(line):
-            log_time, pkg_name, log_file = m.groups()
+            log_time, pkgbase, log_file = m.groups()
             if log_time > last_log:
                 update_time = max(update_time, log_time)
                 ts = int(time.mktime(time.strptime(log_time[:26], "%Y-%m-%d %H:%M:%S.%f")))
                 should_update = True
                 for db in args:
-                    if pkg := db.get_pkg(pkg_name):
+                    if pkg := db.get_pkg(pkgbase):
                         builddate = pkg.builddate
-                        log.debug(f'{pkg_name} fail at: {ts}')
-                        log.debug(f"{pkg_name} build at: {builddate}")
+                        log.debug(f'{pkgbase} fail at: {ts}')
+                        log.debug(f"{pkgbase} build at: {builddate}")
                         if ts < builddate:
-                            log.warn(f'Ignore {pkg_name} fail at {log_time}')
+                            log.warn(f'Ignore {pkgbase} fail at {log_time}')
                             should_update = False
                             break
                 if should_update:
-                    msg = f'FTBFS: {pkg_name} {log_file}'
-                    result.append(Update(pkg_name, 'failed', None, None, None, None, msg))
+                    msg = f'FTBFS: {pkgbase} {log_file}'
+                    result.append(Update(pkgbase, pkgbase, 'failed', None, None, None, None, msg))
                     log.info(msg)
     with open('db/ftbfs.log', 'w') as f:
         f.write(update_time)
