@@ -40,10 +40,11 @@ class ArchRVBotHandler(Handler):
         updated_pkgbase = set()
         for update in updates:
             action_status = self.status_map.get(update.update_type)
-            if update.pkgbase in updated_pkgbase or action_status is None : 
-                # Ignore duplicated pkgbase
+            if (update.pkgbase, update.update_type) in updated_pkgbase:
                 continue
-            updated_pkgbase.add(update.pkgbase)
+            if action_status is None: 
+                continue
+            updated_pkgbase.add((update.pkgbase, update.update_type))
             action, status = action_status
             msgs.append((update.pkgbase, action, status))
         async with aiohttp.ClientSession(raise_for_status=True) as client:
