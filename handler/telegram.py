@@ -22,9 +22,9 @@ class TelegramBotHandler(Handler):
         lines = ['<b>Arch Linux RISC-V: Recent package updates</b>']
         for item in group:
             if item.old_version:
-                lines.append(html.escape(f'{item.pkg_name} {item.old_version} -> {item.new_version}'))
+                lines.append(html.escape(f'{item.pkgname} {item.old_version} -> {item.new_version}'))
             else:
-                lines.append(html.escape(f'{item.pkg_name} {item.new_version}'))
+                lines.append(html.escape(f'{item.pkgname} {item.new_version}'))
 
         msg = '\n'.join(lines)
 
