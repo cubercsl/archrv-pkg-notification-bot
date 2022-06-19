@@ -18,30 +18,30 @@ log = logging.getLogger(__name__)
 update_handler = []
 
 
-def add_handler(handler, *args, **kwargs):
-    if all(args) and all(kwargs.values()):
-        update_handler.append(handler(*args, **kwargs))
+def add_handler(handler, dry_run, *args, **kwargs):
+    if dry_run or all(args) and all(kwargs.values()):
+        update_handler.append(handler(dry_run=dry_run, *args, **kwargs))
     else:
         log.warning(f'ignore handler: {handler}')
 
 
 def get_packages(packages: list[pyalpm.Package]):
-    return dict((pkg.name, (pkg.version, pkg.arch, pkg.base)) for pkg in packages)
+    return dict((pkg.name, (pkg.version, pkg.arch, pkg.base, pkg.provides)) for pkg in packages)
 
 
 def get_update(db_name, before, after):
     result = []
     for name, value in after.items():
-        new_version, new_arch, pkgbase = value
+        new_version, new_arch, pkgbase, provides = value
         if name in before:
-            old_version, old_arch, _ = before[name]
+            old_version, *_ = before[name]
             if pyalpm.vercmp(new_version, old_version) > 0:
                 msg = f'Update: {db_name} {name} {old_version} -> {new_version} {new_arch}'
-                result.append(Update(name, pkgbase, 'update', db_name, old_version, new_version, new_arch, msg))
+                result.append(Update(name, pkgbase, provides, 'update', db_name, old_version, new_version, new_arch, msg))
                 log.info(msg)
         else:
             msg = f'New: {db_name} {name} {new_version} {new_arch}'
-            result.append(Update(name, pkgbase, 'new', db_name, None, new_version, new_arch, msg))
+            result.append(Update(name, pkgbase, provides, 'new', db_name, None, new_version, new_arch, msg))
             log.info(msg)
     return result
 
@@ -96,7 +96,8 @@ async def get_ftbfs(data: str, *args):
                             break
                 if should_update:
                     msg = f'FTBFS: {pkgbase} {log_file}'
-                    result.append(Update(pkgbase, pkgbase, 'failed', None, None, None, None, msg))
+                    # We should not send provides as ftbfs.
+                    result.append(Update(pkgbase, pkgbase, None, 'failed', None, None, None, None, msg))
                     log.info(msg)
     with open('db/ftbfs.log', 'w') as f:
         f.write(update_time)
@@ -145,6 +146,12 @@ def main():
         help="Set the FTBFS Log URL.",
         default="https://archriscv.felixc.at/.status/latestlogs.txt"
     )
+    parser.add_argument(
+        '--dry-run',
+        help='Run handlers without updating',
+        action='store_true',
+        default=False
+    )
 
     args = parser.parse_args()
     logging.basic_colorized_config(level=args.loglevel)
@@ -156,7 +163,7 @@ def main():
     community: DB = handle.register_syncdb('community', pyalpm.SIG_DATABASE_OPTIONAL)
 
     for handler, kwargs in handlers.items():
-        add_handler(handler, **kwargs)
+        add_handler(handler, args.dry_run, **kwargs)
 
     asyncio.run(run(baseurl, logurl, core, extra, community))
 
