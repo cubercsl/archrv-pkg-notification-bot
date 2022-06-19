@@ -45,21 +45,24 @@ class ArchRVBotHandler(Handler):
     async def process(self, updates: List[Update]):
         log.info('send to archrv...')
         msgs = []
-        updated_pkgbase = set()
-        updated_provides = set()
+        updated_item = set()
         for update in updates:
             action_status = self.status_map.get(update.update_type)
             if action_status is None:
                 continue
             action, status = action_status
-            if (update.pkgbase, update.update_type) not in updated_pkgbase:                
-                updated_pkgbase.add((update.pkgbase, update.update_type))
+            if (update.pkgbase, update.update_type) not in updated_item:                
+                updated_item.add((update.pkgbase, update.update_type))
                 msgs.append((update.pkgbase, action, status))
+            if (update.pkgname, update.update_type) not in updated_item:
+                updated_item.add((update.pkgname, update.update_type))
+                msgs.append((update.pkgname, action, status))
+            
             for provide_item in update.provides:
                 if match := self.provide_pattern.match(provide_item):
                     provide = match.group('name')
-                    if (provide, update.update_type) not in updated_provides:
-                        updated_provides.add((provide, update.update_type))
+                    if (provide, update.update_type) not in updated_item:
+                        updated_item.add((provide, update.update_type))
                         msgs.append((provide, action, status))
 
         async with aiohttp.ClientSession(raise_for_status=True) as client:

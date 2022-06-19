@@ -97,7 +97,7 @@ async def get_ftbfs(data: str, *args):
                 if should_update:
                     msg = f'FTBFS: {pkgbase} {log_file}'
                     # We should not send provides as ftbfs.
-                    result.append(Update(pkgbase, pkgbase, None, 'failed', None, None, None, None, msg))
+                    result.append(Update(pkgbase, pkgbase, list(), 'failed', None, None, None, None, msg))
                     log.info(msg)
     with open('db/ftbfs.log', 'w') as f:
         f.write(update_time)
