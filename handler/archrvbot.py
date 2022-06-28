@@ -8,7 +8,7 @@ import betterlogging as logging
 
 from handler import Handler, Update
 
-log = logging.getLogger(__name__)
+log: logging.BetterLogger = logging.getLogger(__name__)
 
 
 class ArchRVBotHandler(Handler):

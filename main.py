@@ -14,7 +14,7 @@ from handler import Update
 
 import betterlogging as logging
 
-log = logging.getLogger(__name__)
+log: logging.BetterLogger = logging.getLogger(__name__)
 update_handler = []
 
 
@@ -91,7 +91,7 @@ async def get_ftbfs(data: str, *args):
                         log.debug(f'{pkgbase} fail at: {ts}')
                         log.debug(f"{pkgbase} build at: {builddate}")
                         if ts < builddate:
-                            log.warn(f'Ignore {pkgbase} fail at {log_time}')
+                            log.warning(f'Ignore {pkgbase} fail at {log_time}')
                             should_update = False
                             break
                 if should_update:
@@ -113,7 +113,13 @@ async def run(baseurl, logurl, *args):
         for db in args:
             log.info(f'Syncing {db.name}...')
             before_sync = get_packages(db.pkgcache)
-            db.update(False)
+
+            try:
+                db.update(False)
+            except Exception as e:
+                log.exception(e)
+                continue
+
             after_sync = get_packages(db.pkgcache)
             update += get_update(db.name, before_sync, after_sync)
 
