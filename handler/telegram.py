@@ -56,3 +56,15 @@ class TelegramBotHandler(Handler):
         async with aiohttp.ClientSession(raise_for_status=True) as client:
             await asyncio.gather(*[self._process_one(client, group, _chat_id) for group, _chat_id in
                                    itertools.product(groups, chat_id)])
+
+class TelegramBotErrorNotify(TelegramBotHandler):
+    async def notify(self, msg: str):
+        log.info(msg)
+        if self.dry_run:
+            return
+        async with aiohttp.ClientSession(raise_for_status=True) as client:
+            await client.get(self.url, params=dict(
+                chat_id=self.chat_id,
+                text=msg,
+                parse_mode='HTML'
+            ))

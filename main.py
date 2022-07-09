@@ -2,6 +2,7 @@ import aiohttp
 import argparse
 import asyncio
 import re
+import sys
 import time
 
 from typing import List
@@ -9,7 +10,7 @@ from typing import List
 import pyalpm
 from pyalpm import Handle, DB
 
-from config import handlers
+from config import handlers, notify
 from handler import Update
 
 import betterlogging as logging
@@ -105,9 +106,9 @@ async def get_ftbfs(data: str, *args):
     return result
 
 async def run(baseurl, logurl, *args):
+    await notify.notify('我起来了')
     for db in args:
         db.servers = [f"{baseurl}/{db.name}"]
-
     while True:
         update = []
         for db in args:
@@ -118,7 +119,8 @@ async def run(baseurl, logurl, *args):
                 db.update(False)
             except Exception as e:
                 log.exception(e)
-                continue
+                await notify.notify('我烂掉了')
+                sys.exit(0)
 
             after_sync = get_packages(db.pkgcache)
             update += get_update(db.name, before_sync, after_sync)
