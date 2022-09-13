@@ -32,8 +32,10 @@ def get_packages(packages: list[pyalpm.Package]):
 
 def get_update(db_name, before, after):
     result = []
+    pkgnames = after.keys()
     for name, value in after.items():
         new_version, new_arch, pkgbase, provides = value
+        if provides: provides = list(p for p in provides if p not in pkgnames)
         if name in before:
             old_version, *_ = before[name]
             if pyalpm.vercmp(new_version, old_version) > 0:
@@ -172,6 +174,8 @@ def main():
 
     for handler, kwargs in handlers.items():
         add_handler(handler, args.dry_run, **kwargs)
+    if args.dry_run:
+        notify.dry_run = True
 
     asyncio.run(run(baseurl, logurl, core, extra, community))
 
