@@ -1,4 +1,10 @@
 #!/bin/bash -e
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
 ROOT_DIR=$(dirname "$SCRIPT_DIR")
+
+if [ -f "$ROOT_DIR/db/db.lck" ]; then
+    echo "Clean db lock"
+    sleep 10
+    rm -f "$ROOT_DIR/db/db.lck"
+fi
 exec $ROOT_DIR/.venv/bin/python "$ROOT_DIR/main.py" $@

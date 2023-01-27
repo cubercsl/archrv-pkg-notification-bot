@@ -10,7 +10,7 @@ from typing import List
 import pyalpm
 from pyalpm import Handle, DB
 
-from config import handlers, notify
+from config import handlers, push
 from handler import Update
 
 import betterlogging as logging
@@ -108,20 +108,20 @@ async def get_ftbfs(data: str, *args):
     return result
 
 async def run(baseurl, logurl, *args):
-    await notify.notify('我起来了')
     for db in args:
         db.servers = [f"{baseurl}/{db.name}"]
     while True:
+        asyncio.create_task(push.push(status='up', msg='Syncing...'))
         update = []
         for db in args:
-            log.info(f'Syncing {db.name}...')
+            log.debug(f'Syncing {db.name}...')
             before_sync = get_packages(db.pkgcache)
 
             try:
                 db.update(False)
             except Exception as e:
                 log.exception(e)
-                await notify.notify('我烂掉了')
+                await push.push(status='down', msg=f'Failed to sync {db.name}')
                 sys.exit(0)
 
             after_sync = get_packages(db.pkgcache)

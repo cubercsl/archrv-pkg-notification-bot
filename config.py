@@ -1,8 +1,8 @@
 import os
 
 from handler.archrvbot import ArchRVBotHandler
-from handler.telegram import TelegramBotHandler, TelegramBotErrorNotify
-
+from handler.telegram import TelegramBotHandler
+from handler.uptimekuma import UptimeKumaPushHandler
 handlers = {
     ArchRVBotHandler: dict(
         baseurl=os.getenv('archrv__baseurl'),
@@ -14,4 +14,4 @@ handlers = {
     )
 }
 
-notify = TelegramBotErrorNotify(chat_id=os.getenv('telegram_notify__chat_id'), bot_token=os.getenv('telegram_notify__bot_token'))
+push = UptimeKumaPushHandler(baseurl=os.getenv('uptimekuma__baseurl'), token=os.getenv('uptimekuma__token'))
