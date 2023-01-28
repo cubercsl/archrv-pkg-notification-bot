@@ -17,6 +17,7 @@ import betterlogging as logging
 
 log: logging.BetterLogger = logging.getLogger(__name__)
 update_handler = []
+provide_pattern = re.compile(r'^(?P<name>[0-9a-z@._+\-]+)(?P<version>.*)$')
 
 
 def add_handler(handler, dry_run, *args, **kwargs):
@@ -31,11 +32,21 @@ def get_packages(packages: list[pyalpm.Package]):
 
 
 def get_update(db_name, before, after):
+
+    def _get_provides(provides, pkgnames):
+        result = []
+        for provide in provides:
+            if match := provide_pattern.match(provide):
+                name = match.group('name')
+                if name not in pkgnames:
+                    result.append(name)
+        return result
+
     result = []
-    pkgnames = after.keys()
     for name, value in after.items():
         new_version, new_arch, pkgbase, provides = value
-        if provides: provides = list(p for p in provides if p not in pkgnames)
+        if provides: 
+            provides = _get_provides(provides, after.keys())
         if name in before:
             old_version, *_ = before[name]
             if pyalpm.vercmp(new_version, old_version) > 0:
@@ -175,7 +186,7 @@ def main():
     for handler, kwargs in handlers.items():
         add_handler(handler, args.dry_run, **kwargs)
     if args.dry_run:
-        notify.dry_run = True
+        push.dry_run = True
 
     asyncio.run(run(baseurl, logurl, core, extra, community))
 
