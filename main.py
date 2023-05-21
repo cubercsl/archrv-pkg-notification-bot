@@ -31,9 +31,9 @@ def get_packages(packages: list[pyalpm.Package]):
     return dict((pkg.name, (pkg.version, pkg.arch, pkg.base, pkg.provides)) for pkg in packages)
 
 
-def get_update(db_name, before, after):
-
-    def _get_provides(provides, pkgnames):
+def get_update(db_name, before, after, pkgnames):
+    
+    def _get_provides(provides):
         result = []
         for provide in provides:
             if match := provide_pattern.match(provide):
@@ -46,7 +46,7 @@ def get_update(db_name, before, after):
     for name, value in after.items():
         new_version, new_arch, pkgbase, provides = value
         if provides: 
-            provides = _get_provides(provides, after.keys())
+            provides = _get_provides(provides)
         if name in before:
             old_version, *_ = before[name]
             if pyalpm.vercmp(new_version, old_version) > 0:
@@ -124,9 +124,11 @@ async def run(baseurl, logurl, *args):
     while True:
         asyncio.create_task(push.push(status='up', msg='Syncing...'))
         update = []
+        before_sync = []
+        after_sync = []
         for db in args:
             log.debug(f'Syncing {db.name}...')
-            before_sync = get_packages(db.pkgcache)
+            before_sync.append(get_packages(db.pkgcache))
 
             try:
                 db.update(False)
@@ -135,8 +137,13 @@ async def run(baseurl, logurl, *args):
                 await push.push(status='down', msg=f'Failed to sync {db.name}')
                 sys.exit(0)
 
-            after_sync = get_packages(db.pkgcache)
-            update += get_update(db.name, before_sync, after_sync)
+            after_sync.append(get_packages(db.pkgcache))
+        pkgnames = set()
+        for after in after_sync:
+            pkgnames.update(after.keys())
+
+        for db, before, after in zip(args, before_sync, after_sync):
+            update += get_update(db.name, before, after, pkgnames)
 
         update += await get_ftbfs(await get_ftbfs_log(logurl), *args)
 
