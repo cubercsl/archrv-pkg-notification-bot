@@ -31,7 +31,7 @@ def get_packages(packages: list[pyalpm.Package]):
     return dict((pkg.name, (pkg.version, pkg.arch, pkg.base, pkg.provides)) for pkg in packages)
 
 
-def get_update(db_name, before, after, pkgnames):
+def get_update(before, after, pkgnames):
     
     def _get_provides(provides):
         result = []
@@ -50,12 +50,12 @@ def get_update(db_name, before, after, pkgnames):
         if name in before:
             old_version, *_ = before[name]
             if pyalpm.vercmp(new_version, old_version) > 0:
-                msg = f'Update: {db_name} {name} {old_version} -> {new_version} {new_arch}'
-                result.append(Update(name, pkgbase, provides, 'update', db_name, old_version, new_version, new_arch, msg))
+                msg = f'Update: {name} {old_version} -> {new_version} {new_arch}'
+                result.append(Update(name, pkgbase, provides, 'update', old_version, new_version, new_arch, msg))
                 log.info(msg)
         else:
-            msg = f'New: {db_name} {name} {new_version} {new_arch}'
-            result.append(Update(name, pkgbase, provides, 'new', db_name, None, new_version, new_arch, msg))
+            msg = f'New: {name} {new_version} {new_arch}'
+            result.append(Update(name, pkgbase, provides, 'new', None, new_version, new_arch, msg))
             log.info(msg)
     return result
 
@@ -111,7 +111,7 @@ async def get_ftbfs(data: str, *args):
                 if should_update:
                     msg = f'FTBFS: {pkgbase} {log_file}'
                     # We should not send provides as ftbfs.
-                    result.append(Update(pkgbase, pkgbase, list(), 'failed', None, None, None, None, msg))
+                    result.append(Update(pkgbase, pkgbase, list(), 'failed', None, None, None, msg))
                     log.info(msg)
     with open('db/ftbfs.log', 'w') as f:
         f.write(update_time)
@@ -124,11 +124,11 @@ async def run(baseurl, logurl, *args):
     while True:
         asyncio.create_task(push.push(status='up', msg='Syncing...'))
         update = []
-        before_sync = []
-        after_sync = []
-        for db in args:
+        before_sync = dict()
+        after_sync = dict()
+        for db in args[::-1]:
             log.debug(f'Syncing {db.name}...')
-            before_sync.append(get_packages(db.pkgcache))
+            before_sync.update(get_packages(db.pkgcache))
 
             try:
                 db.update(False)
@@ -137,13 +137,9 @@ async def run(baseurl, logurl, *args):
                 await push.push(status='down', msg=f'Failed to sync {db.name}')
                 sys.exit(0)
 
-            after_sync.append(get_packages(db.pkgcache))
-        pkgnames = set()
-        for after in after_sync:
-            pkgnames.update(after.keys())
+            after_sync.update(get_packages(db.pkgcache))
 
-        for db, before, after in zip(args, before_sync, after_sync):
-            update += get_update(db.name, before, after, pkgnames)
+        update += get_update(before_sync, after_sync, after_sync.keys())
 
         update += await get_ftbfs(await get_ftbfs_log(logurl), *args)
 
