@@ -184,14 +184,14 @@ def main():
     handle = Handle('.', 'db')
     core: DB = handle.register_syncdb('core', pyalpm.SIG_DATABASE_OPTIONAL)
     extra: DB = handle.register_syncdb('extra', pyalpm.SIG_DATABASE_OPTIONAL)
-    community: DB = handle.register_syncdb('community', pyalpm.SIG_DATABASE_OPTIONAL)
+    unsupported: DB = handle.register_syncdb('unsupported', pyalpm.SIG_DATABASE_OPTIONAL)
 
     for handler, kwargs in handlers.items():
         add_handler(handler, args.dry_run, **kwargs)
     if args.dry_run:
         push.dry_run = True
 
-    asyncio.run(run(baseurl, logurl, core, extra, community))
+    asyncio.run(run(baseurl, logurl, core, extra, unsupported))
 
 
 if __name__ == '__main__':
