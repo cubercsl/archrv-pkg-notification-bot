@@ -21,10 +21,11 @@ class ArchRVBotHandler(Handler):
         'failed': ('add', 'ftbfs'),
     }
 
-    def __init__(self, baseurl, token, *args, **kwargs):
+    def __init__(self, baseurl, token, error_handler: Handler, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.baseurl = baseurl
         self.token = token
+        self.error_handler = error_handler
 
     async def _process_one(self, client: aiohttp.ClientSession, pkgbase: str, action: str, status: str):
         if self.dry_run:
@@ -39,6 +40,10 @@ class ArchRVBotHandler(Handler):
                 log.info(data)
         except aiohttp.ClientResponseError as e:
             log.error('{}, message={!r}'.format(e.status, e.message))
+            try:
+                self.error_handler.notify(f'更新状态 `{action}` `{status}` `{pkgbase}` 的时候烂掉了！\n' + '`{}`, message={!r}'.format(e.status, e.message))
+            except Exception as e:
+                log.exception(e)
         except Exception as e:
             log.exception(e)
 

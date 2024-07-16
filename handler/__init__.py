@@ -20,3 +20,6 @@ class Handler(object):
 
     async def process(self, data: List[Update]):
         pass
+
+    async def notify(self, msg: str):
+        pass

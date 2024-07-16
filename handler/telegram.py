@@ -66,5 +66,5 @@ class TelegramBotErrorNotify(TelegramBotHandler):
             await client.get(self.url, params=dict(
                 chat_id=self.chat_id,
                 text=msg,
-                parse_mode='HTML'
+                parse_mode='MarkdownV2'
             ))
